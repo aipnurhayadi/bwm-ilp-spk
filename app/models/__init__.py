@@ -1,3 +1,37 @@
 from app.models.user import User
+from app.models.scheduling import (
+	AssignmentPolicy,
+	Availability,
+	BuildingDistance,
+	Class,
+	Course,
+	CourseEquipmentRequirement,
+	Dataset,
+	Enrollment,
+	PenaltyWeight,
+	Preference,
+	Room,
+	RoomEquipment,
+	ScheduleEntry,
+	SoftwareLicense,
+	Timeslot,
+)
 
-__all__ = ["User"]
+__all__ = [
+	"AssignmentPolicy",
+	"Availability",
+	"BuildingDistance",
+	"Class",
+	"Course",
+	"CourseEquipmentRequirement",
+	"Dataset",
+	"Enrollment",
+	"PenaltyWeight",
+	"Preference",
+	"Room",
+	"RoomEquipment",
+	"ScheduleEntry",
+	"SoftwareLicense",
+	"Timeslot",
+	"User",
+]

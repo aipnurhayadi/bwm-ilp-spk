@@ -1,7 +1,7 @@
-from sqlalchemy.orm import DeclarativeBase, MappedAsDataclass
+from sqlalchemy.orm import DeclarativeBase
 
 
-class Base(MappedAsDataclass, DeclarativeBase):
-    """Base class for SQLAlchemy models using dataclass support."""
+class Base(DeclarativeBase):
+    """Base class for SQLAlchemy models."""
 
     __abstract__ = True
