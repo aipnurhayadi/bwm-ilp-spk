@@ -4,3 +4,4 @@ alembic>=1.13.1
 pydantic-settings>=2.2.1
 asyncmy>=0.2.9
 python-dotenv>=1.0.1
+ortools>=9.10.4067

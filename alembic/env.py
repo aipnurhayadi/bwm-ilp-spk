@@ -13,7 +13,32 @@ from app.db.base import Base
 config = context.config
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # Alembic's ini (`alembic.ini`) may include a [logging] section pointing
+    # to the real logging config file (for example `alembic/logging.ini`).
+    # Passing `alembic.ini` directly to logging.config.fileConfig raises a
+    # KeyError: 'formatters' because `alembic.ini` doesn't contain logging
+    # formatter definitions. Read the `config_file` option and load that file
+    # instead when present.
+    import configparser
+    import os
+
+    try:
+        parser = configparser.ConfigParser()
+        parser.read(config.config_file_name)
+        if parser.has_section("logging") and parser.has_option("logging", "config_file"):
+            logging_path = parser.get("logging", "config_file")
+            # Resolve relative path relative to the alembic.ini location
+            base_dir = os.path.dirname(config.config_file_name)
+            if not os.path.isabs(logging_path):
+                logging_path = os.path.join(base_dir, logging_path)
+            fileConfig(logging_path)
+        else:
+            # Fallback: load the alembic.ini itself (backwards compatibility)
+            fileConfig(config.config_file_name)
+    except Exception:
+        # If anything goes wrong loading the separate logging config,
+        # fallback to loading the alembic.ini to preserve previous behavior.
+        fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
 
