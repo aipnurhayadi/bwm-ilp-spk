@@ -1,0 +1,308 @@
+\documentclass[journal]{IEEEtran}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{longtable,booktabs}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{bookmark}
+\usepackage{calc}
+\usepackage{etoolbox}
+\usepackage{multicol}
+\usepackage{titlesec}
+\usepackage{cite}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{float}
+\usepackage{url}
+
+\geometry{
+  top=19mm,
+  bottom=43mm,
+  left=14.32mm,
+  right=14.32mm
+}
+  
+\setlength{\parskip}{0.5em}
+\setlist[itemize]{nosep, leftmargin=*}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  columns=fullflexible,
+  frame=single,
+  breaklines=true,
+  postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+}
+
+\title{Model Hibrid BWM-ILP/CP-SAT untuk Optimasi Penjadwalan Kuliah Universitas yang Adil dan Efis}
+\author{Aip Nurhayadi\\
+  \textit{Fakultas Teknik, Universitas Widyatama}\\
+  \textit{Bandung, Indonesia}\\
+  \textit{aip.nurhayadi@widyatama.ac.id}}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+    \begin{abstract}
+    Penjadwalan Kuliah Universitas (UCTP) adalah masalah optimasi NP-Complete yang esensial, bertujuan mengalokasikan sumber daya secara efisien. Kualitas jadwal tidak hanya diukur dari kelayakan teknis, tetapi juga dari keadilan yang direpresentasikan oleh pemenuhan berbagai soft constraints yang seringkali bertentangan. Pendekatan optimasi tradisional seringkali gagal menangani aspek keadilan ini secara sistematis, karena bobot penalti untuk soft constraints biasanya ditentukan secara ad-hoc. Penelitian ini menjembatani kesenjangan antara preferensi subjektif pemangku kepentingan dan optimasi matematis yang objektif. Penelitian ini mengintegrasikan dua metodologi yaitu Best-Worst Method (BWM) dan Integer Linear Programming (ILP) atau Constraint Programming (CP-SAT). BWM digunakan sebagai alat Multi-Criteria Decision-Making (MCDM) untuk secara sistematis mengekstrak dan mengkuantifikasi bobot prioritas dari setiap soft constraints. Bobot ini kemudian diintegrasikan ke dalam fungsi tujuan dari model ILP/CP-SAT, yang bertugas mencari solusi jadwal yang optimal dan efisien. Penelitian ini bertujuan untuk menghasilkan jadwal yang tidak hanya layak secara teknis tetapi juga adil.
+    \end{abstract}
+    \begin{IEEEkeywords}
+        \textit{Penjadwalan Kuliah Universitas}, \textit{UCTP}, \textit{Best-Worst Method}, \textit{Integer Linear Programming}, \textit{CP-SAT}, \textit{Fairness}
+    \end{IEEEkeywords}
+
+    \section{Introduction}
+    
+    University Course Timetabling Problem (UCTP) merupakan salah satu proses administratif paling krusial dan menantang yang dihadapi oleh institusi pendidikan tinggi setiap semester per tahun-nya \cite{bashab2023}.  Proses ini menetapkan aktivitas guru-kelas ke dalam slot waktu dan ruang kelas, dengan cara sedemikian rupa sehingga tidak ada guru, kelas, atau ruang yang terlibat dalam lebih dari satu kegiatan pada waktu yang sama \cite{fonsecaVNS}. 
+    
+    Inti dari UCTP terletak pada pemenuhan dua kategori kendala yaitu hard constraints dan soft constraints yang seringkali bertentangan \cite{chen2021}. Hard constraints adalah aturan yang bersifat mutlak dan tidak dapat dilanggar, untuk menghasilkan jadwal yang layak (feasible) \cite{alhawari2020}, seperti larangan bentrokan jadwal untuk dosen atau kelompok mahasiswa yang sama. 
+    
+    Di sisi lain, soft constraints adalah atribut yang dapat dilanggar, karena tidak bersifat wajib, namun pemenuhannya sangat penting untuk menghasilkan jadwal yang berkualitas baik. Setiap pelanggaran terhadap kendala tersebut menimbulkan penalti \cite{bashab2023}. Contohnya pemenuhan preferensi slot waktu, meminimalkan perpindahan antar gedung, hingga menghindari jadwal yang memiliki jeda kosong yang panjang \cite{chen2021}.
+    
+    Masalah utama dalam banyak pendekatan optimasi UCTP yang ada adalah bagaimana menangani kendala lunak (soft constraints) \cite{chen2021}. Beberapa penelitian mencatat bahwa pendekatannya sangat bervariasi, beberapa model menetapkan bobot skalar yang seragam atau sederhana untuk batasan lunak yang berbeda, sementara karya lain mengandalkan pemilihan bobot ad hoc oleh administrator atau praktisi tanpa validasi sistematis \cite{chen2021}. Pendekatan ini gagal mencerminkan realitas operasional di mana beberapa aspek keadilan jauh lebih penting daripada yang lain \cite{dunke2023}.
+    
+    Kontribusi dari penelitian ini adalah menjembatani kesenjangan antara penilaian preferensi manusia yang subjektif dan optimasi matematis yang objektif. Kami memformulasikan model BWM untuk mendapatkan bobot keadilan, kemudian mengintegrasikan bobot ini ke dalam fungsi tujuan dari model ILP/CP-SAT. 
+    
+    Sisa dari paper ini diatur ke dalam beberapa bagian. Bagian 2 menyajikan tinjauan pustaka yang relevan tentang UCTP, ILP/CP-SAT, dan metode pembobotan (BWM). Bagian 3 merinci metodologi penelitian, termasuk desain BWM dan formulasi matematis model ILP/CP-SAT. Bagian 4 menyajikan hasil eksperimen dan diskusi tentang temuan, terakhir bagian 5 menyimpulkan penelitian serta memberikan saran untuk penelitian di masa depan.
+    
+    \section{Literature Review}
+
+        \subsection{Pendekatan Optimasi ILP dan CP-SAT}
+        
+        Integer Linear Programming (ILP) telah menjadi landasan utama dalam penyelesaian masalah penjadwalan universitas karena kemampuannya memodelkan batasan yang kompleks secara akurat.
+        
+        Integer Linear Programming (ILP) dan Constraint Programming (CP-SAT) menawarkan jaminan untuk menemukan solusi optimal secara matematis. Gu et al. (2025) menyoroti bahwa Integer Programming memiliki tingkat implementasi yang sangat tinggi (98\%) dalam studi kasus penjadwalan, menunjukkan kekuatannya \cite{gu2025}. Solver komersial modern seperti CPLEX, Gurobi dan open-source seperti Google OR-Tools CP-SAT telah membuat pendekatan ini semakin praktis \cite{gu2025}. 
+        
+        Penelitian oleh Al-Hawari et al. (2017) juga menunjukkan bahwa pendekatan ILP dapat dibuat praktis untuk masalah yang kompleks (seperti penjadwalan ujian) dengan membaginya menjadi tiga fase sub-masalah yang lebih kecil \cite{alhawari2020}. 
+        
+        Dalam konteks penelitian ini, ILP/CP-SAT dipilih sebagai mesin optimasi karena kemampuannya untuk menjamin efisiensi (solusi optimal) berdasarkan fungsi tujuan yang didefinisikan dengan jelas.
+        
+
+        \subsection{Pendekatan Pembobotan BWM}
+        
+        Efektivitas solver ILP/CP-SAT bergantung sepenuhnya pada definisi fungsi tujuan, yang dalam UCTP adalah penjumlahan penalti dari pelanggaran soft constraint. Ini memunculkan pertanyaan krusial: bagaimana bobot penalti (\$W\_k\$) untuk setiap pelanggaran SC ditentukan? Di sinilah Multi-Criteria Decision-Making (MCDM) berperan.
+
+        Best-Worst Method (BWM) pertama kali diusulkan oleh Rezaei pada tahun 2015, di mana metode baru yang disebut best-worst method diusulkan untuk memecahkan masalah pengambilan keputusan multi-kriteria \cite{rezaei2015}. Metode ini telah muncul sebagai solusi yang efektif untuk tantangan tersebut, dan diakui secara luas karena best-worst method merupakan alat yang kuat untuk pengambilan keputusan multikriteria dan penentuan koefisien bobot kriteria \cite{pamucar2020}.
+        
+        BWM dikembangkan untuk mengatasi beberapa kelemahan metode MCDM populer lainnya, seperti AHP (Analytic Hierarchy Process) \cite{rezaei2015}. Keunggulananya terletak pada efektivitasnya dalam mengurangi waktu perbandingan berpasangan dan kemampuannya yang kuat dalam menjaga konsistensi antar penilaian \cite{tu2023}. Selain itu, BWM telah terbukti menghasilkan bobot yang lebih andal dan menunjukkan kinerja yang kuat dalam menjaga konsistensi.
+        
+        BWM juga menyediakan metrik Consistency Ratio (CR) yang jelas, yang memungkinkan peneliti untuk memvalidasi secara kuantitatif apakah penilaian yang diberikan oleh pembuat keputusan rasional dan dapat diandalkan \cite{li2021}.
+        
+        Fleksibilitas metode ini juga terlihat dari berbagai pengembangannya. Sebagai contoh, Pamucar et al. (2020) mengusulkan Improved BWM (BWM-I) yang mengatasi keterbatasan BWM tradisional dengan memungkinkan pengambil keputusan untuk menetapkan lebih dari satu kriteria terbaik atau terburuk, suatu situasi yang sering terjadi dalam kondisi nyata \cite{pamucar2020}.
+        
+        Lebih lanjut, untuk menangani ketidakpastian atau keraguan dalam penilaian manusia, telah dikembangkan metode yang menggabungkan Hesitant Fuzzy Preference Relations (HFPRs). HFPRs sendiri telah banyak diterapkan dalam pengambilan keputusan multikriteria (MCDM) karena kemampuannya dalam mengekspresikan informasi yang bersifat ragu-ragu secara efisien \cite{li2021} , sehingga menjadikan BWM sebagai alat yang sangat relevan untuk memodelkan preferensi terhadap keadilan yang seringkali bersifat subjektif dan tidak pasti.
+        
+        Dalam penelitian ini, BWM dipilih sebagai metode untuk secara sistematis, transparan, dan andal menangkap preferensi subjektif tentang keadilan dan mengubahnya menjadi bobot kuantitatif (\(W_{k}\)) untuk model optimasi.
+
+    \section{Methodology and Proposed System}
+
+        \subsection{Datasets}
+        
+        Penelitian ini menggunakan dataset sintetis untuk mensimulasikan permasalahan penjadwalan kuliah universitas yang kompleks. Dataset dirancang agar mencerminkan variasi nyata dalam hal ketersediaan dosen, kebutuhan ruang, preferensi waktu mengajar, serta konflik penggunaan sumber daya.
+
+        Dataset mencakup 15 dosen, 30 mata kuliah, dan lebih dari 100 kelas paralel yang harus dijadwalkan ke dalam 6 ruang kuliah yang tersebar di 3 gedung. Setiap kelas memiliki atribut kapasitas, tipe sesi (lecture atau lab), serta preferensi tertentu terhadap penggunaan ruang.
+        
+        Waktu perkuliahan dimodelkan dalam bentuk timeslot diskret berdurasi 40 menit, yang tersedia dari pukul 08.00 hingga 21.00 untuk setiap hari dari Senin sampai Minggu. Timeslot yang berada pada rentang 10.00--14.00 dikategorikan sebagai peak time dan digunakan sebagai dasar soft constraint penghindaran jam sibuk.
+        
+        Setiap dosen memiliki pola ketersediaan harian yang berbeda, yang dimodelkan dalam bentuk blok waktu tertentu. Selain itu, dosen juga memiliki preferensi waktu mengajar yang dikelompokkan menjadi pagi, siang, dan sore. Preferensi ini tidak bersifat wajib, tetapi digunakan sebagai soft constraint dalam fungsi objektif.
+        
+        Sebagian mata kuliah memerlukan sesi praktikum (lab). Untuk mata kuliah tersebut, ditetapkan kebutuhan peralatan minimum, seperti jumlah komputer laboratorium, yang dimodelkan sebagai hard constraint. Dengan demikian, kelas praktikum hanya dapat dijadwalkan pada ruang yang memenuhi spesifikasi teknis yang ditentukan.
+        
+        Selain itu, dataset juga mencakup kebijakan penjadwalan lain, seperti batas maksimum sesi per hari dan batas maksimum jam sibuk, serta informasi jarak antar gedung dalam satuan menit berjalan kaki. Elemen-elemen ini disediakan untuk meningkatkan realisme dan memungkinkan pengembangan constraint lanjutan di masa depan.
+        
+        \subsection{Hard Constraints}
+            Hard constraint merepresentasikan aturan mutlak yang tidak boleh dilanggar. Pelanggaran terhadap kendala ini menyebabkan solusi tidak layak (infeasible). Berdasarkan implementasi sistem, hard constraint yang digunakan adalah sebagai berikut.
+        
+            \subsubsection{Setiap Kelas Dijadwalkan Tepat Satu Kali}
+            
+            Setiap Kelas Dijadwalkan Tepat Satu Kali: Setiap kelas harus ditugaskan ke tepat satu kombinasi dosen dan timeslot.
+
+            \[\sum_{t \in T_{c}}^{}{\sum_{l \in L_{c}}^{}w_{c,t,l}} = 1,\forall c\]
+
+            Dengan (\(w_{\left\{ c,t,l \right\}} \in \left\{ 0,1 \right\}\)) menyatakan apakah kelas (\(c\)) diajar oleh dosen (\(l\)) pada timeslot (\(t\)).
+        
+            \subsubsection{Konsistensi Penugasan Dosen--Ruang}
+            
+            Penugasan ruang harus konsisten dengan penugasan dosen--timeslot.
+
+            \[\sum_{l}^{}w_{c,t,l} = \sum_{r}^{}x_{c,t,r},\forall c,t\]
+
+            Dengan (\(x\_\{ c,t,r\}\  \in \ \{ 0,1\}\)) menunjukkan penugasan ruang.
+            
+            \subsubsection{Dosen Tidak Boleh Mengajar Lebih dari Satu Kelas pada Timeslot yang Sama}
+            
+            \[
+              \sum_{c} w_{c,t,l} \leq 1,\quad\forall l,t
+            \]
+            
+            \subsubsection{Ruang Tidak Boleh Digunakan Lebih dari Satu Kelas pada Timeslot yang Sama}
+            
+            \[
+              \sum_{c} x_{c,t,r} \leq 1,\quad\forall r,t
+            \]
+        
+        \subsection{Soft Constraints}
+        Soft constraint digunakan untuk meningkatkan kualitas jadwal tanpa mengorbankan feasibility. Pelanggaran soft constraint dikenakan penalti yang diminimalkan dalam fungsi objektif.
+        
+        \begin{itemize}
+          \item Lecturer Time Preference: penalti berdasarkan selisih antara jadwal aktual dan preferensi waktu dosen.
+          \item Room Utilization: penalti dari ruang yang melebihi kapasitas kelas.
+          \item Peak Time Avoidance: penalti jika kelas dijadwalkan pada jam sibuk.
+        \end{itemize}
+        
+        Rumus penalti yang digunakan:
+        \begin{align*}
+          P_{pref} &= 1 - \text{preference\_score},\\
+          P_{peak} &= \begin{cases}
+            1 & \text{jika timeslot termasuk peak time},\\
+            0 & \text{lainnya},
+          \end{cases}\\
+          P_{util} &= \frac{\max(capacity_{room} - capacity_{class}, 0)}{capacity_{room}}.
+        \end{align*}
+
+        \subsection{Pemodelan Bobot Best-Worst Method (BWM)}
+
+        Dalam penelitian ini, pembobotan soft constraint dilakukan menggunakan Best--Worst Method (BWM) untuk memastikan bahwa preferensi pengambil keputusan terhadap kriteria penjadwalan dimodelkan secara konsisten dan terstruktur.
+        
+        BWM dipilih karena mampu menghasilkan bobot yang stabil dengan jumlah perbandingan yang lebih sedikit dibandingkan metode perbandingan berpasangan konvensional.
+        
+        Berdasarkan tujuan penjadwalan yang adil dan efisien, ditetapkan tiga soft constraint utama:
+        
+        \begin{itemize}
+        \item
+          Lecturer Time Preference, kesesuaian jadwal dengan preferensi waktu
+          dosen
+        \item
+          Room Utilization, efisiensi pemanfaatan kapasitas ruang
+        \item
+          Peak Time Avoidance, menghindari jam sibuk perkuliahan
+        \end{itemize}
+        
+        Ketiga kriteria ini digunakan secara konsisten baik pada tahap pembobotan maupun pada formulasi fungsi objektif ILP.
+        
+        Selanjutnya dilakukan dua jenis perbandingan preferensi yaitu best to others (BO) (seberapa lebih penting kriteria terbaik dibandingkan kriteria lain) dan others to worst (OW) (seberapa lebih penting kriteria lain dibandingkan kriteria terburuk).
+        
+        Bobot hasil BWM disimpan dalam parameter sistem dan digunakan langsung sebagai koefisien penalti pada fungsi objektif ILP. Pada dataset eksperimen, bobot yang digunakan ditunjukkan pada Table \ref{fig:bobot-bwm}.
+        
+        \begin{table}[htbp]
+        \centering
+        \caption{Bobot BWM}
+        \label{fig:bobot-bwm}
+        \label{tab:bobot-bwm}
+        \begin{tabular}{@{}lp{3cm}@{}}
+        \toprule
+        \textbf{Soft Constraint} & \textbf{Bobot BWM} \\
+        \midrule
+        Lecturer Preference   & 0.45 \\
+        Room Utilization      & 0.35 \\
+        Peak Time Avoidance   & 0.20 \\
+        \bottomrule
+        \end{tabular}
+        \end{table}
+        
+        \subsection{Formulasi ILP/CP-SAT}
+        Hard constraint dan soft constraint yang telah dijelaskan pada bagian sebelumnya dioperasionalkan melalui sebuah model Integer Linear Programming (ILP) dengan variabel keputusan biner. Model optimasi ini diselesaikan menggunakan solver linear berbasis CP-SAT (CBC) yang disediakan oleh Google OR-Tools, yang dirancang untuk menangani permasalahan kombinatorial dengan kendala diskret secara efisien.
+
+        Model menggunakan dua kelompok variabel keputusan yang terpisah, yaitu variabel penugasan kelas--dosen--waktu dan variabel penugasan kelas--ruang--waktu. Pemisahan ini memungkinkan pengendalian konflik sumber daya dosen dan ruang secara independen, sementara hubungan antarvariabel dijaga melalui kendala konsistensi sehingga setiap kelas yang dijadwalkan selalu memiliki tepat satu dosen dan satu ruang pada timeslot yang sama.
+        
+        Untuk meningkatkan efisiensi komputasi, sejumlah kendala kelayakan diterapkan secara implisit pada tahap pembentukan variabel. Kombinasi yang tidak memenuhi ketersediaan dosen, kapasitas ruang, tipe ruang, serta kebutuhan peralatan wajib dieliminasi sejak awal dan tidak dimasukkan ke dalam model optimasi. Pendekatan ini secara signifikan mengurangi ukuran masalah dan mempercepat proses pencarian solusi.
+        
+        Soft constraint dimasukkan ke dalam model melalui fungsi objektif dalam bentuk penalti linier berbobot. Bobot penalti yang diperoleh dari metode Best--Worst Method (BWM) digunakan secara langsung sebagai koefisien pada fungsi objektif, sehingga prioritas kebijakan akademik dapat tercermin secara eksplisit dalam proses optimasi tanpa memengaruhi kelayakan solusi.
+        
+        Solver terlebih dahulu memastikan bahwa seluruh hard constraint terpenuhi, kemudian meminimalkan total penalti soft constraint. Dengan demikian, solusi yang dihasilkan tidak hanya layak secara struktural, tetapi juga optimal dari sisi kualitas jadwal dan kesesuaian preferensi.
+
+    \section{Results and Discussion}
+    \begin{lstlisting}[caption={Output Hasil Optimasi}, label={lst:json_output}]
+    {
+      "dataset_id": 1,
+      "dataset_name": "Demo BWM ILP Dataset",
+      "objective_value": 14.0965,
+      "soft_constraint_totals": {
+        "ROOM_UTILIZATION": 7.6615,
+        "LECTURER_PREFERENCE": 6.4350,
+        "PEAK_TIME_AVOIDANCE": 0
+      },
+      "solver_status": "FEASIBLE",
+      "status": "OPTIMAL",
+      "time_execution": 1.4744
+    }
+    \end{lstlisting}
+    
+    Nilai penalti nol pada kriteria peak time avoidance menunjukkan bahwa model berhasil sepenuhnya menghindari penjadwalan pada jam sibuk tanpa mengorbankan kelayakan solusi. Temuan ini mengindikasikan bahwa, pada skenario dataset yang digunakan, kendala penghindaran jam sibuk relatif mudah dipenuhi dan tidak menimbulkan konflik signifikan dengan kendala lainnya.
+
+    Sebaliknya, keberadaan penalti pada kriteria utilisasi ruang dan preferensi dosen mencerminkan adanya kompromi (\emph{trade-off}) antara efisiensi pemanfaatan sumber daya dan kesesuaian terhadap preferensi individu. Dengan bobot BWM yang lebih tinggi pada preferensi dosen, model cenderung memprioritaskan kepuasan dosen meskipun berdampak pada distribusi penggunaan ruang yang kurang optimal. Perilaku ini menunjukkan bahwa integrasi bobot BWM dalam fungsi objektif berhasil mengarahkan proses optimasi sesuai dengan prioritas kebijakan yang ditetapkan.
+    
+    Status solusi feasible yang diperoleh, dengan waktu eksekusi relatif singkat sebesar 1.47 detik, menunjukkan bahwa pendekatan ILP/CP-SAT mampu menyelesaikan permasalahan penjadwalan secara efisien pada skala dataset yang diuji. Hal ini mengindikasikan bahwa model memiliki potensi untuk diterapkan pada permasalahan penjadwalan berskala kecil hingga menengah.
+    
+    Meskipun demikian, penelitian ini masih memiliki beberapa keterbatasan. Dataset yang digunakan bersifat sintetis dan bobot BWM ditetapkan secara a priori, sehingga hasil yang diperoleh belum tentu sepenuhnya mencerminkan dinamika penjadwalan di lingkungan universitas nyata.
+    
+    \section{Conclusion and Future Work}
+    Penelitian ini mengusulkan model hibrid BWM--ILP/CP-SAT untuk optimasi penjadwalan kuliah universitas yang mengintegrasikan preferensi kebijakan dan kendala struktural secara sistematis. Hasil eksperimen menunjukkan bahwa model mampu menghasilkan jadwal yang layak dengan memenuhi seluruh hard constraint, sekaligus mengoptimalkan kualitas jadwal berdasarkan soft constraint berbobot. 
+    
+    Penggunaan Best--Worst Method (BWM) memungkinkan pembobotan kriteria yang lebih konsisten dan transparan, sementara formulasi ILP/CP-SAT menyediakan mekanisme optimasi yang fleksibel dan efisien. Ke depan, penelitian ini dapat dikembangkan dengan menggunakan dataset riil, menambahkan analisis sensitivitas bobot, serta memperluas cakupan kendala untuk meningkatkan realisme dan penerapan praktis.
+
+    Seluruh implementasi dan dataset yang digunakan dalam penelitian ini tersedia secara publik untuk mendukung reprodusibilitas penelitian. \footnote{\url{https://github.com/username/project}}.
+    
+    \begin{thebibliography}{10}
+        \bibitem{bashab2023}
+        A. Bashab \emph{et al.}, ``Optimization Techniques in University Timetabling
+        Problem: Constraints, Methodologies, Benchmarks, and Open Issues,''
+        \emph{Computers, Materials \& Continua}, vol. 74, no. 3, pp. 6461--6484,
+        2023, doi: 10.32604/cmc.2023.034051.
+        \bibitem{fonsecaVNS}
+        G. H. G. Fonseca and H. G. Santos, ``Variable Neighborhood Search Based
+        Algorithms for High School Timetabling.'' Available:
+        \url{http://www.utwente.nl/ctit/hstt/}
+        \bibitem{chen2021}
+        M. C. Chen \emph{et al.}, ``A Survey of University Course Timetabling
+        Problem: Perspectives, Trends and Opportunities,''
+        \emph{IEEE Access}, vol. 9, pp. 106515--106529, 2021,
+        doi: 10.1109/ACCESS.2021.3100613.
+        \bibitem{alhawari2020}
+        F. Al-Hawari \emph{et al.}, ``A practical three-phase ILP approach for
+        solving the examination timetabling problem,''
+        \emph{International Transactions in Operational Research},
+        vol. 27, no. 2, pp. 924--944, Mar. 2020,
+        doi: 10.1111/itor.12471.
+        \bibitem{dunke2023}
+        F. Dunke and S. Nickel, ``A Matheuristic for Customized Multi-Level
+        Multi-Criteria University Timetabling,''
+        \emph{Annals of Operations Research},
+        vol. 328, no. 2, pp. 1313--1348, 2023,
+        doi: 10.1007/s10479-023-05325-2.
+        \bibitem{gu2025}
+        X. Gu \emph{et al.}, ``From Integer Programming to Machine Learning: A
+        Technical Review on Solving University Timetabling Problems,''
+        \emph{Computation}, vol. 13, no. 1, p. 10, 2025,
+        doi: 10.3390/computation13010010.
+        \bibitem{rezaei2015}
+        J. Rezaei, ``Best-worst multi-criteria decision-making method,''
+        \emph{Omega}, vol. 53, pp. 49--57, Jun. 2015,
+        doi: 10.1016/j.omega.2014.11.009.
+        
+        \bibitem{pamucar2020}
+        D. Pamučar \emph{et al.}, ``Application of Improved Best Worst Method
+        (BWM) in Real-World Problems,''
+        \emph{Mathematics}, vol. 8, no. 8, p. 1342, 2020,
+        doi: 10.3390/math8081342.
+        \bibitem{tu2023}
+        J. Tu, Z. Wu, and W. Pedrycz, ``Priority ranking for the best--worst
+        method.'' Available:
+        \url{https://ssrn.com/abstract=4331045}
+        \bibitem{li2021}
+        J. Li \emph{et al.}, ``Approaches for multicriteria decision-making based
+        on the hesitant fuzzy best--worst method,''
+        \emph{Complex and Intelligent Systems},
+        vol. 7, no. 5, pp. 2617--2634, Oct. 2021,
+        doi: 10.1007/s40747-021-00406-w.
+    \end{thebibliography}
+    
+\end{document}
