@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Any, Dict, List, Mapping, Tuple
 
 from fastapi import HTTPException, status
@@ -91,6 +92,9 @@ class BwmIlpResult:
     objective_value: float
     soft_constraint_totals: Dict[str, float]
     assignments: List[AssignmentResult]
+    solver_status: str
+    status: str
+    execution_time: float
 
 
 SOFT_CONSTRAINT_KEYS = {
@@ -308,7 +312,11 @@ async def run_bwm_ilp(session: AsyncSession, dataset_id: int) -> BwmIlpResult:
                 key = (class_info.class_id, timeslot_id, room_id)
                 x_vars[key] = solver.BoolVar(f"x_{class_info.class_id}_{timeslot_id}_{room_id}")
 
-    # Constraints
+    # ==== ILP hard constraints =====================================================
+    # The equalities and inequalities below enforce the feasibility relationships:
+    # * each class is assigned to exactly one lecturer-timeslot pairing
+    # * class-room assignments mirror the chosen lecturer-timeslot
+    # * lecturers and rooms cannot double-book the same timeslot.
     for class_info in class_infos:
         solver.Add(
             solver.Sum(w_vars[(class_info.class_id, ts, lec)] for ts in class_timeslot_candidates[class_info.class_id] for lec in class_info.candidate_lecturers if (class_info.class_id, ts, lec) in w_vars)
@@ -349,7 +357,9 @@ async def run_bwm_ilp(session: AsyncSession, dataset_id: int) -> BwmIlpResult:
             if vars_for_room:
                 solver.Add(solver.Sum(vars_for_room) <= 1)
 
-    # Objective
+    # ==== ILP objective ============================================================
+    # Minimise the weighted sum of soft-constraint penalties. Hard rules above must
+    # hold; here we only influence solution quality (preferences, utilisation, etc.).
     objective_coeffs: dict[pywraplp.Variable, float] = defaultdict(float)
 
     def add_soft_cost(var: pywraplp.Variable, key: str, value: float) -> None:
@@ -357,6 +367,10 @@ async def run_bwm_ilp(session: AsyncSession, dataset_id: int) -> BwmIlpResult:
             return
         objective_coeffs[var] += value
 
+    # Soft constraints inject weighted penalties that come from the BWM scores.
+    # Each helper below computes the penalty for its dimension and adds it to the
+    # objective via `add_soft_cost`. The solver will minimise the sum, so higher
+    # penalties make a configuration less desirable but never infeasible.
     for (class_id, timeslot_id, lecturer_id), var in w_vars.items():
         timeslot = timeslot_infos[timeslot_id]
         pref_score = preference_map.get((lecturer_id, timeslot_id), 0.0)
@@ -377,8 +391,13 @@ async def run_bwm_ilp(session: AsyncSession, dataset_id: int) -> BwmIlpResult:
         objective.SetCoefficient(var, coeff)
     objective.SetMinimization()
 
+    start_time = perf_counter()
     status_code = solver.Solve()
-    if status_code not in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE):
+    execution_time = perf_counter() - start_time
+
+    solver_status = "FEASIBLE" if status_code in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE) else "NOT FEASIBLE"
+    solution_status = "OPTIMAL" if status_code == pywraplp.Solver.OPTIMAL else "NOT OPTIMAL"
+    if solver_status == "NOT FEASIBLE":
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="No feasible schedule found")
 
     # Remove previous schedule entries
@@ -475,4 +494,7 @@ async def run_bwm_ilp(session: AsyncSession, dataset_id: int) -> BwmIlpResult:
         objective_value=objective_value,
         soft_constraint_totals=soft_constraint_totals,
         assignments=assignments,
+        solver_status=solver_status,
+        status=solution_status,
+        execution_time=execution_time,
     )

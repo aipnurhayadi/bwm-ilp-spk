@@ -42,6 +42,9 @@ async def simulate_bwm_ilp(
         dataset_name=result.dataset_name,
         objective_value=result.objective_value,
         soft_constraint_totals=result.soft_constraint_totals,
+        solver_status=result.solver_status,
+        status=result.status,
+        time_execution=result.execution_time,
         assignments=[
             AssignmentRead(
                 class_id=assignment.class_id,

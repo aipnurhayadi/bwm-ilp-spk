@@ -178,72 +178,78 @@ async def seed_demo_dataset(
         timeslots_by_day[ts.day_of_week].append(ts)
 
     lecturers: list[Lecturer] = []
-    lecturer_profiles = [
+    day_patterns = [
         {
-            "lecturer_code": "L001",
-            "name": "Dr. Anisa Rahma",
-            "home_building": "A",
-            "min_load": 6,
-            "max_load": 12,
-            "day_blocks": {
-                "Monday": [("08:00", "12:00"), ("13:00", "16:20")],
-                "Wednesday": [("08:00", "12:00"), ("13:00", "16:20")],
-                "Friday": [("08:00", "12:00"), ("13:00", "14:40")],
-            },
-            "preference": {"morning": 1.0, "afternoon": 0.7, "evening": 0.3},
+            "Monday": (("08:00", "12:00"), ("13:00", "16:20")),
+            "Wednesday": (("08:00", "12:00"), ("13:00", "16:20")),
+            "Friday": (("08:00", "12:00"), ("13:00", "14:40")),
         },
         {
-            "lecturer_code": "L002",
-            "name": "Dr. Bagus Santoso",
-            "home_building": "B",
-            "min_load": 4,
-            "max_load": 10,
-            "day_blocks": {
-                "Tuesday": [("08:00", "12:40"), ("14:00", "17:00")],
-                "Thursday": [("08:00", "12:40"), ("14:00", "17:00")],
-            },
-            "preference": {"morning": 0.8, "afternoon": 1.0, "evening": 0.5},
+            "Tuesday": (("08:00", "12:40"), ("14:00", "17:00")),
+            "Thursday": (("08:00", "12:40"), ("14:00", "17:00")),
+            "Saturday": (("09:00", "12:20"),),
         },
         {
-            "lecturer_code": "L003",
-            "name": "Prof. Clara Wijaya",
-            "home_building": "C",
-            "min_load": 8,
-            "max_load": 14,
-            "day_blocks": {
-                "Monday": [("10:00", "18:00")],
-                "Tuesday": [("10:00", "18:00")],
-                "Thursday": [("10:00", "18:00")],
-            },
-            "preference": {"morning": 0.6, "afternoon": 1.0, "evening": 0.6},
+            "Monday": (("10:00", "18:00"),),
+            "Tuesday": (("10:00", "18:00"),),
+            "Thursday": (("10:00", "18:00"),),
         },
         {
-            "lecturer_code": "L004",
-            "name": "Ir. Dimas Saputra",
-            "home_building": "B",
-            "min_load": 4,
-            "max_load": 12,
-            "day_blocks": {
-                "Wednesday": [("08:00", "15:00")],
-                "Friday": [("08:00", "15:00")],
-                "Saturday": [("09:00", "13:00")],
-            },
-            "preference": {"morning": 1.0, "afternoon": 0.6, "evening": 0.2},
+            "Wednesday": (("08:00", "15:00"),),
+            "Friday": (("08:00", "15:00"),),
+            "Saturday": (("09:00", "13:00"),),
         },
         {
-            "lecturer_code": "L005",
-            "name": "Dr. Erina Kurnia",
-            "home_building": "A",
-            "min_load": 6,
-            "max_load": 12,
-            "day_blocks": {
-                "Tuesday": [("08:00", "12:00"), ("13:00", "16:20")],
-                "Thursday": [("08:00", "12:00"), ("13:00", "16:20")],
-                "Friday": [("09:00", "15:00")],
-            },
-            "preference": {"morning": 0.9, "afternoon": 0.8, "evening": 0.5},
+            "Monday": (("09:00", "13:20"),),
+            "Tuesday": (("09:00", "13:20"),),
+            "Thursday": (("09:00", "13:20"),),
+            "Friday": (("13:20", "17:40"),),
         },
     ]
+    preference_patterns = [
+        {"morning": 1.0, "afternoon": 0.7, "evening": 0.3},
+        {"morning": 0.8, "afternoon": 1.0, "evening": 0.5},
+        {"morning": 0.6, "afternoon": 1.0, "evening": 0.8},
+        {"morning": 0.5, "afternoon": 0.9, "evening": 0.7},
+        {"morning": 0.7, "afternoon": 0.8, "evening": 0.4},
+    ]
+    building_cycle = ["A", "B", "C"]
+
+    lecturer_names = [
+        "Adi Nugroho",
+        "Ayu Lestari",
+        "Budi Santoso",
+        "Citra Maharani",
+        "Dewi Anggraini",
+        "Eko Prasetyo",
+        "Farah Salsabila",
+        "Galih Pramudito",
+        "Hana Wibisono",
+        "Imam Ramadhan",
+        "Joko Saputra",
+        "Kartika Putri",
+        "Lukman Hakim",
+        "Maya Ardiani",
+        "Nadia Paramita",
+    ]
+
+    lecturer_profiles: list[dict[str, object]] = []
+    for idx, lecturer_name in enumerate(lecturer_names):
+        day_pattern = day_patterns[idx % len(day_patterns)]
+        day_blocks = {day: [tuple(block) for block in blocks] for day, blocks in day_pattern.items()}
+        preferences = preference_patterns[idx % len(preference_patterns)]
+        min_load = 4 + (idx % 4) * 2
+        lecturer_profiles.append(
+            {
+                "lecturer_code": f"L{idx + 1:03d}",
+                "name": lecturer_name,
+                "home_building": building_cycle[idx % len(building_cycle)],
+                "min_load": min_load,
+                "max_load": min_load + 6,
+                "day_blocks": day_blocks,
+                "preference": preferences,
+            }
+        )
 
     for profile in lecturer_profiles:
         lecturers.append(
@@ -262,168 +268,92 @@ async def seed_demo_dataset(
     lecturer_code_map = {lec.lecturer_code: lec for lec in lecturers}
 
     courses: list[Course] = []
-    course_specs = [
-        {
-            "course_code": "CS101",
-            "course_name": "Algorithms and Data Structures",
-            "credits": 3,
-            "requires_lab": False,
-            "candidate_lecturers": ["L001", "L003"],
-            "classes": [
-                {
-                    "cohort": f"TI-2021-A{section:02d}",
-                    "capacity": 80,
-                    "session_type": "lecture",
-                    "same_room": True,
-                }
-                for section in range(1, 6)
-            ],
-        },
-        {
-            "course_code": "CS102",
-            "course_name": "Computer Architecture",
-            "credits": 3,
-            "requires_lab": False,
-            "candidate_lecturers": ["L002", "L004"],
-            "classes": [
-                {
-                    "cohort": f"TI-2021-B{section:02d}",
-                    "capacity": 78,
-                    "session_type": "lecture",
-                    "same_room": True,
-                }
-                for section in range(1, 6)
-            ],
-        },
-        {
-            "course_code": "CS103",
-            "course_name": "Operating Systems",
-            "credits": 3,
-            "requires_lab": False,
-            "candidate_lecturers": ["L003", "L005"],
-            "classes": [
-                {
-                    "cohort": f"TI-2021-C{section:02d}",
-                    "capacity": 82,
-                    "session_type": "lecture",
-                    "same_room": True,
-                }
-                for section in range(1, 6)
-            ],
-        },
-        {
-            "course_code": "CS104",
-            "course_name": "Database Systems",
-            "credits": 3,
-            "requires_lab": False,
-            "candidate_lecturers": ["L001", "L005"],
-            "classes": [
-                {
-                    "cohort": f"TI-2021-D{section:02d}",
-                    "capacity": 76,
-                    "session_type": "lecture",
-                    "same_room": True,
-                }
-                for section in range(1, 6)
-            ],
-        },
-        {
-            "course_code": "CS105",
-            "course_name": "Software Engineering",
-            "credits": 3,
-            "requires_lab": False,
-            "candidate_lecturers": ["L002", "L005"],
-            "classes": [
-                {
-                    "cohort": f"TI-2022-A{section:02d}",
-                    "capacity": 88,
-                    "session_type": "lecture",
-                    "same_room": True,
-                }
-                for section in range(1, 6)
-            ],
-        },
-        {
-            "course_code": "CS106",
-            "course_name": "Artificial Intelligence",
-            "credits": 3,
-            "requires_lab": False,
-            "candidate_lecturers": ["L003", "L004"],
-            "classes": [
-                {
-                    "cohort": f"TI-2022-B{section:02d}",
-                    "capacity": 84,
-                    "session_type": "lecture",
-                    "same_room": True,
-                }
-                for section in range(1, 6)
-            ],
-        },
-        {
-            "course_code": "CS107",
-            "course_name": "Computer Networks",
-            "credits": 3,
-            "requires_lab": False,
-            "candidate_lecturers": ["L002", "L004"],
-            "classes": [
-                {
-                    "cohort": f"TI-2022-C{section:02d}",
-                    "capacity": 90,
-                    "session_type": "lecture",
-                    "same_room": True,
-                }
-                for section in range(1, 6)
-            ],
-        },
-        {
-            "course_code": "CS108",
-            "course_name": "Information Security",
-            "credits": 2,
-            "requires_lab": False,
-            "candidate_lecturers": ["L001", "L003"],
-            "classes": [
-                {
-                    "cohort": f"TI-2022-D{section:02d}",
-                    "capacity": 74,
-                    "session_type": "lecture",
-                    "same_room": True,
-                }
-                for section in range(1, 6)
-            ],
-        },
-        {
-            "course_code": "CS109",
-            "course_name": "Human-Computer Interaction",
-            "credits": 2,
-            "requires_lab": False,
-            "candidate_lecturers": ["L005"],
-            "classes": [
-                {
-                    "cohort": f"TI-2023-A{section:02d}",
-                    "capacity": 72,
-                    "session_type": "lecture",
-                    "same_room": True,
-                }
-                for section in range(1, 6)
-            ],
-        },
-        {
-            "course_code": "CS110",
-            "course_name": "Data Analytics",
-            "credits": 3,
-            "requires_lab": False,
-            "candidate_lecturers": ["L003", "L005"],
-            "classes": [
-                {
-                    "cohort": f"TI-2023-B{section:02d}",
-                    "capacity": 86,
-                    "session_type": "lecture",
-                    "same_room": True,
-                }
-                for section in range(1, 6)
-            ],
-        },
+    lecturer_codes = [profile["lecturer_code"] for profile in lecturer_profiles]
+    cohorts = [
+        "TI-2020-A",
+        "TI-2020-B",
+        "TI-2021-A",
+        "TI-2021-B",
+        "TI-2022-A",
+        "TI-2022-B",
+        "TI-2023-A",
+        "TI-2023-B",
+        "TI-2024-A",
+        "TI-2024-B",
     ]
+
+    course_names = [
+        "Analisis Data Lanjut",
+        "Optimasi Industri",
+        "Pemodelan Sistem Kompleks",
+        "Kecerdasan Buatan Terapan",
+        "Manajemen Rantai Pasok",
+        "Statistika Multivariat",
+        "Sistem Produksi Lean",
+        "Perancangan Eksperimen",
+        "Simulasi Monte Carlo",
+        "Pengambilan Keputusan",
+        "Analitika Bisnis",
+        "Peramalan Deret Waktu",
+        "Rekayasa Kualitas",
+        "Manajemen Proyek Teknologi",
+        "Logistik Distribusi",
+        "Optimasi Kombinatorik",
+        "Analitik Keuangan",
+        "Data Mining Terapan",
+        "Pemrograman Linear",
+        "Pemodelan Stokastik",
+        "Metode Numerik",
+        "Sistem Pendukung Keputusan",
+        "Machine Learning Industri",
+        "Analisis Risiko Operasional",
+        "Desain Jaringan Transportasi",
+        "Analitik Layanan",
+        "Perencanaan Produksi",
+        "Audit Proses",
+        "Manajemen Strategis Operasi",
+        "Komputasi Evolusioner",
+    ]
+
+    course_specs: list[dict[str, object]] = []
+    extra_sections = 10
+    class_counter = 0
+    for idx, course_name in enumerate(course_names):
+        course_number = idx + 1
+        course_code = f"CS{course_number + 700:03d}"
+        lab_required = idx % 5 == 0
+        candidate_lecturers = [
+            lecturer_codes[idx % len(lecturer_codes)],
+            lecturer_codes[(idx + 5) % len(lecturer_codes)],
+            lecturer_codes[(idx + 10) % len(lecturer_codes)],
+        ]
+        section_count = 3 + (1 if idx < extra_sections else 0)
+        class_entries: list[dict[str, object]] = []
+        for section in range(section_count):
+            class_counter += 1
+            cohort_label = cohorts[(class_counter - 1) % len(cohorts)]
+            cohort_id = f"{cohort_label}-C{class_counter:03d}"
+            capacity = 60 + (class_counter % 41)
+            class_entries.append(
+                {
+                    "cohort": cohort_id,
+                    "capacity": capacity,
+                    "session_type": "lab" if lab_required else "lecture",
+                    "duration": 160,
+                    "same_room": True,
+                    "needs_lab": lab_required,
+                }
+            )
+        course_specs.append(
+            {
+                "course_code": course_code,
+                "course_name": course_name,
+                "credits": 2 + (idx % 3),
+                "requires_lab": lab_required,
+                "candidate_lecturers": candidate_lecturers,
+                "classes": class_entries,
+            }
+        )
 
     for spec in course_specs:
         profile = {

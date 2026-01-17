@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import time
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -33,6 +33,9 @@ class BwmSimulationResponse(BaseModel):
     dataset_name: str
     objective_value: float
     soft_constraint_totals: Dict[str, float]
+    solver_status: Literal["FEASIBLE", "NOT FEASIBLE"]
+    status: Literal["OPTIMAL", "NOT OPTIMAL"]
+    time_execution: float = Field(description="Solver runtime in seconds")
     assignments: List[AssignmentRead]
 
 
